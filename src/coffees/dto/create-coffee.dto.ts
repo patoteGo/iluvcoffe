@@ -1,4 +1,5 @@
-import { IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { CreateFlavorDto } from './create-flavor.dto';
 
 export class CreateCoffeeDto {
   @IsString()
@@ -7,6 +8,7 @@ export class CreateCoffeeDto {
   @IsString()
   readonly brand: string;
 
-  @IsString({ each: true })
-  readonly flavors: string[];
+  @IsArray()
+  @IsOptional()
+  readonly flavors: CreateFlavorDto[];
 }

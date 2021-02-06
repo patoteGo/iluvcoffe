@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCoffeeDto } from './dto/create-coffee.dto';
+import { CreateFlavorDto } from './dto/create-flavor.dto';
 import { UpdateCoffeeDto } from './dto/update-coffee.dto';
 import { Coffee } from './entities/coffee.entity';
 import { Flavor } from './entities/flavor.entity';
@@ -28,15 +29,14 @@ export class CoffeesService {
   }
 
   async create(createCoffeeDto: CreateCoffeeDto) {
-    const flavors: Flavor[] = await Promise.all(
-      createCoffeeDto.flavors.map((name: string) =>
-        this.preloadFlavorByName(name),
-      ),
+    const flavors = await Promise.all(
+      createCoffeeDto.flavors.map((flavor: CreateFlavorDto) => {
+        this.preloadFlavor(flavor);
+      }),
     );
 
     const coffee = this.coffeeRepository.create({
       ...createCoffeeDto,
-      flavors,
     });
     return this.coffeeRepository.save(coffee);
   }
@@ -45,8 +45,8 @@ export class CoffeesService {
     const flavors =
       updateCoffeeDto.flavors &&
       (await Promise.all(
-        updateCoffeeDto.flavors.map((name: string) =>
-          this.preloadFlavorByName(name),
+        updateCoffeeDto.flavors.map((flavor: Flavor) =>
+          this.preloadFlavor(flavor),
         ),
       ));
     const coffee = await this.coffeeRepository.preload({
@@ -65,11 +65,15 @@ export class CoffeesService {
     return this.coffeeRepository.remove(coffee);
   }
 
-  private async preloadFlavorByName(name: string): Promise<Flavor> {
-    const existingFlavor = await this.flavorRepository.findOne({ name });
+  private async preloadFlavor(
+    createFlavorDto: CreateFlavorDto,
+  ): Promise<Flavor> {
+    const existingFlavor = await this.flavorRepository.findOne({
+      name: createFlavorDto.name,
+    });
     if (existingFlavor) {
       return existingFlavor;
     }
-    return this.flavorRepository.create({ name });
+    return await this.flavorRepository.create(createFlavorDto);
   }
 }
